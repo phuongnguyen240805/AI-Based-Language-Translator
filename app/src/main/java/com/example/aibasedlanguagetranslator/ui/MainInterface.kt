@@ -10,20 +10,27 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.Alignment
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.navigation.NavController
 
 @Composable
-fun TranslateScreen() {
-    var inputText by remember { mutableStateOf("hello I am Hrittika") }
+fun TranslateScreen(navController: NavController) {
+    val isLoggedIn by remember { mutableStateOf(false) }
+    val userName by remember { mutableStateOf("Hrittika") }
+
+    var inputText by remember { mutableStateOf("") }
     val translatedText by remember { mutableStateOf("helo main ritika") }
+
+    val previousTranslations = listOf(
+        "hello I am Hrittika" to "helo main ritika",
+        "How are you?" to "tum kaise ho?",
+        "Good morning" to "suprabhat",
+    )
 
     Column(
         modifier = Modifier
@@ -31,42 +38,12 @@ fun TranslateScreen() {
             .background(Color(0xFFEAF0FB))
             .padding(12.dp)
     ) {
-        // Custom Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(WindowInsets.statusBars.asPaddingValues()) // Né status bar tự động
-                .height(56.dp)
-                .background(Color(0xFF4285F4))
-                .padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Left side: Logo
-            Icon(
-                imageVector = Icons.Default.Translate,
-                contentDescription = "Logo",
-                tint = Color.White,
-                modifier = Modifier.size(32.dp)
-            )
-
-            // Right side: Avatar + Account Name
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.AccountCircle,
-                    contentDescription = "Avatar",
-                    tint = Color.White,
-                    modifier = Modifier.size(36.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Hrittika",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
-            }
-        }
+        // Header
+        TranslateHeader(
+            isLoggedIn = isLoggedIn,
+            userName = userName,
+            onLoginClick = { navController.navigate("login") }
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -75,7 +52,8 @@ fun TranslateScreen() {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text("English", fontSize = 18.sp)
             Icon(Icons.Default.SwapHoriz, contentDescription = null)
@@ -92,9 +70,12 @@ fun TranslateScreen() {
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("ENGLISH", color = Color.Gray, fontSize = 12.sp)
+
+                // TextField with Placeholder
                 TextField(
                     value = inputText,
                     onValueChange = { inputText = it },
+                    placeholder = { Text("Nhập văn bản") },
                     modifier = Modifier.fillMaxWidth(),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
@@ -104,8 +85,13 @@ fun TranslateScreen() {
                         unfocusedIndicatorColor = Color.Transparent
                     )
                 )
+
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.SpaceAround) {
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
                     IconButton(onClick = {}) {
                         Icon(Icons.Default.CameraAlt, contentDescription = "Camera")
                     }
@@ -113,7 +99,7 @@ fun TranslateScreen() {
                         Icon(Icons.Default.Edit, contentDescription = "Handwriting")
                     }
                     IconButton(onClick = {}) {
-                        Icon(Icons.Default.Mic, contentDescription = "Conversation")
+                        Icon(Icons.Default.Mic, contentDescription = "Microphone")
                     }
                     IconButton(onClick = {}) {
                         Icon(Icons.Default.VolumeUp, contentDescription = "Voice")
@@ -143,36 +129,21 @@ fun TranslateScreen() {
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     IconButton(onClick = {}) {
-                        Icon(
-                            Icons.Default.AccountCircle,
-                            contentDescription = null,
-                            tint = Color.White
-                        )
-
-                    }
-                    IconButton(onClick = {}) {
                         Icon(Icons.Default.Share, contentDescription = null, tint = Color.White)
                     }
                     IconButton(onClick = {}) {
-                        Icon(
-                            Icons.Default.ContentCopy,
-                            contentDescription = null,
-                            tint = Color.White
-                        )
+                        Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color.White)
+                    }
+                    IconButton(onClick = {}) {
+                        Icon(Icons.Default.StarBorder, contentDescription = "Save", tint = Color.White)
                     }
                 }
             }
         }
 
-        // Dummy previous translations
-        val previousTranslations = listOf(
-            "hello I am Hrittika" to "helo main ritika",
-            "How are you?" to "tum kaise ho?",
-            "Good morning" to "suprabhat",
-        )
-
         Spacer(modifier = Modifier.height(12.dp))
 
+        // History Title
         Text(
             text = "History",
             fontWeight = FontWeight.Bold,
@@ -180,18 +151,18 @@ fun TranslateScreen() {
             modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
         )
 
-        // History Box (scroll riêng và chiếm hết không gian còn lại)
+        // History List
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f) // Chiếm phần còn lại của Column
+                .weight(1f)
                 .background(Color.White)
                 .padding(8.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState()) // Scroll riêng History
+                    .verticalScroll(rememberScrollState())
             ) {
                 previousTranslations.forEach { (original, translated) ->
                     Card(
@@ -210,12 +181,11 @@ fun TranslateScreen() {
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.End
                             ) {
-                                IconButton(onClick = { /* TODO: Copy action */ }) {
-                                    Icon(
-                                        Icons.Default.ContentCopy,
-                                        contentDescription = "Copy",
-                                        tint = Color.Black
-                                    )
+                                IconButton(onClick = { /* TODO: Copy */ }) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = Color.Black)
+                                }
+                                IconButton(onClick = { /* TODO: Save */ }) {
+                                    Icon(Icons.Default.StarBorder, contentDescription = "Save", tint = Color.Black)
                                 }
                             }
                         }
@@ -230,26 +200,43 @@ fun TranslateScreen() {
                 icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
                 label = { Text("Home") },
                 selected = true,
-                onClick = {}
+                onClick = {},
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = Color.White,
+                    selectedTextColor = Color(0xFF4285F4),
+                    indicatorColor = Color(0xFF4285F4),
+                    unselectedIconColor = Color.Gray,
+                    unselectedTextColor = Color.Gray
+                )
             )
             NavigationBarItem(
                 icon = { Icon(Icons.Default.Star, contentDescription = "Saved") },
                 label = { Text("Saved") },
                 selected = false,
-                onClick = {}
+                onClick = {},
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = Color.Gray,
+                    selectedTextColor = Color.Gray,
+                    indicatorColor = Color.Transparent,
+                    unselectedIconColor = Color.Gray,
+                    unselectedTextColor = Color.Gray
+                )
             )
             NavigationBarItem(
                 icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
                 label = { Text("Settings") },
                 selected = false,
-                onClick = {}
+                onClick = {},
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = Color.Gray,
+                    selectedTextColor = Color.Gray,
+                    indicatorColor = Color.Transparent,
+                    unselectedIconColor = Color.Gray,
+                    unselectedTextColor = Color.Gray
+                )
             )
         }
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    TranslateScreen()
-}
+

@@ -51,7 +51,8 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.animation.core.android)
     implementation(libs.androidx.material3.android)
-    implementation(libs.androidx.ui.graphics.android)
+    implementation(libs.androidx.navigation.runtime.android)
+    implementation(libs.androidx.navigation.runtime.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -67,4 +68,23 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.ktx)
+
+    implementation (platform(libs.androidx.compose.bom))
+
+    // Compose UI
+    implementation (libs.ui.v161)
+    implementation (libs.material3.v120) // Material 3
+
+    // Navigation for Jetpack Compose
+    implementation (libs.androidx.navigation.compose)
+
+    // Tooling preview (cho @Preview)
+    implementation (libs.androidx.ui.tooling.preview.v161)
+    debugImplementation (libs.androidx.ui.tooling.v161)
+
+    // Foundation (Layout như Column, Row, Box, Scroll...)
+    implementation (libs.androidx.foundation)
+
+    // Optional: Icons Extended (nhiều icon hơn)
+    implementation (libs.material.icons.extended)
 }
