@@ -13,18 +13,51 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.Alignment
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.navigation.NavController
+import com.example.aibasedlanguagetranslator.ui.components.LanguageSelector
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.aibasedlanguagetranslator.viewmodel.TranslateViewModel
 
 @Composable
 fun TranslateScreen(navController: NavController) {
     val isLoggedIn by remember { mutableStateOf(false) }
     val userName by remember { mutableStateOf("Hrittika") }
 
+    // Languages list
+    val languageList = listOf("Vietnamese", "English", "Chinese", "Japanese")
+
+    var sourceLanguage by remember { mutableStateOf("Vietnamese") }
+    var targetLanguage by remember { mutableStateOf("English") }
+
+    val viewModel: TranslateViewModel = viewModel()
+    val translatedText by viewModel.translatedText.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+
     var inputText by remember { mutableStateOf("") }
-    val translatedText by remember { mutableStateOf("helo main ritika") }
+
+    // loading effect
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    // copy text
+    val clipboardManager = LocalClipboardManager.current
+
+    // Debounce + API call mỗi khi input hoặc ngôn ngữ đổi
+    LaunchedEffect(inputText, sourceLanguage, targetLanguage) {
+        if (inputText.isNotBlank()) {
+            viewModel.translate(
+                text = inputText,
+                sourceLang = getLanguageCode(sourceLanguage),
+                targetLang = getLanguageCode(targetLanguage)
+            )
+        } else {
+            viewModel.setTranslatedText("")
+        }
+    }
 
     val previousTranslations = listOf(
         "hello I am Hrittika" to "helo main ritika",
@@ -37,6 +70,7 @@ fun TranslateScreen(navController: NavController) {
             .fillMaxSize()
             .background(Color(0xFFEAF0FB))
             .padding(12.dp)
+            .verticalScroll(rememberScrollState()) // scroll được toàn bộ
     ) {
         // Header
         TranslateHeader(
@@ -52,12 +86,42 @@ fun TranslateScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("English", fontSize = 18.sp)
-            Icon(Icons.Default.SwapHoriz, contentDescription = null)
-            Text("Hindi", fontSize = 18.sp)
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                LanguageSelector(
+                    selectedLanguage = sourceLanguage,
+                    onLanguageSelected = {
+                        sourceLanguage = it
+                        viewModel.setTranslatedText("")
+                    },
+                    languageList = languageList
+                )
+            }
+
+            // Swap button
+            Box(modifier = Modifier.width(48.dp), contentAlignment = Alignment.Center) {
+                IconButton(onClick = {
+                    val temp = sourceLanguage
+                    sourceLanguage = targetLanguage
+                    targetLanguage = temp
+                    viewModel.setTranslatedText("")
+                }) {
+                    Icon(Icons.Default.SwapHoriz, contentDescription = "Swap")
+                }
+            }
+
+            // Right language selector
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                LanguageSelector(
+                    selectedLanguage = targetLanguage,
+                    onLanguageSelected = {
+                        targetLanguage = it
+                        viewModel.setTranslatedText("")
+                    },
+                    languageList = languageList
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -69,13 +133,12 @@ fun TranslateScreen(navController: NavController) {
             colors = CardDefaults.cardColors(containerColor = Color.White),
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("ENGLISH", color = Color.Gray, fontSize = 12.sp)
+                Text(getLanguageLabel(sourceLanguage), color = Color.Gray, fontSize = 12.sp)
 
-                // TextField with Placeholder
                 TextField(
                     value = inputText,
                     onValueChange = { inputText = it },
-                    placeholder = { Text("Nhập văn bản") },
+                    placeholder = { Text(getPlaceholder(sourceLanguage)) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
@@ -117,13 +180,18 @@ fun TranslateScreen(navController: NavController) {
             colors = CardDefaults.cardColors(containerColor = Color(0xFF4285F4))
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("HINDI", color = Color.White, fontSize = 12.sp)
-                Text(
-                    translatedText,
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+                Text(getLanguageLabel(targetLanguage), color = Color.White, fontSize = 12.sp)
+                if (isLoading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                } else {
+                    Text(
+                        text = translatedText,
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
@@ -131,14 +199,30 @@ fun TranslateScreen(navController: NavController) {
                     IconButton(onClick = {}) {
                         Icon(Icons.Default.Share, contentDescription = null, tint = Color.White)
                     }
-                    IconButton(onClick = {}) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color.White)
+                    IconButton(onClick = {
+                        clipboardManager.setText(AnnotatedString(translatedText))
+                    }) {
+                        Icon(
+                            Icons.Default.ContentCopy,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
                     }
                     IconButton(onClick = {}) {
-                        Icon(Icons.Default.StarBorder, contentDescription = "Save", tint = Color.White)
+                        Icon(
+                            Icons.Default.StarBorder,
+                            contentDescription = "Save",
+                            tint = Color.White
+                        )
                     }
                 }
             }
+        }
+
+        // Error message
+        errorMessage?.let {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = it, color = Color.Red, fontSize = 14.sp)
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -182,10 +266,18 @@ fun TranslateScreen(navController: NavController) {
                                 horizontalArrangement = Arrangement.End
                             ) {
                                 IconButton(onClick = { /* TODO: Copy */ }) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = Color.Black)
+                                    Icon(
+                                        Icons.Default.ContentCopy,
+                                        contentDescription = "Copy",
+                                        tint = Color.Black
+                                    )
                                 }
                                 IconButton(onClick = { /* TODO: Save */ }) {
-                                    Icon(Icons.Default.StarBorder, contentDescription = "Save", tint = Color.Black)
+                                    Icon(
+                                        Icons.Default.StarBorder,
+                                        contentDescription = "Save",
+                                        tint = Color.Black
+                                    )
                                 }
                             }
                         }
@@ -239,4 +331,32 @@ fun TranslateScreen(navController: NavController) {
     }
 }
 
+fun getLanguageLabel(language: String): String {
+    return when (language.lowercase()) {
+        "vietnamese" -> "TIẾNG VIỆT"
+        "english" -> "ENGLISH"
+        "chinese" -> "TIẾNG TRUNG"
+        "japanese" -> "TIẾNG NHẬT"
+        else -> language.uppercase()
+    }
+}
 
+fun getPlaceholder(language: String): String {
+    return when (language.lowercase()) {
+        "vietnamese" -> "Nhập văn bản"
+        "english" -> "Enter text"
+        "chinese" -> "输入文本"
+        "japanese" -> "テキストを入力"
+        else -> "Enter text"
+    }
+}
+
+fun getLanguageCode(language: String): String {
+    return when (language.lowercase()) {
+        "vietnamese" -> "vi"
+        "english" -> "en"
+        "chinese" -> "zh"
+        "japanese" -> "ja"
+        else -> "en" // fallback
+    }
+}
