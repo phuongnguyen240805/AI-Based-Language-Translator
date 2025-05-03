@@ -1,4 +1,4 @@
-package com.example.aibasedlanguagetranslator.ui
+package com.example.aibasedlanguagetranslator.ui.page
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -11,7 +11,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -20,10 +19,8 @@ import androidx.navigation.NavController
 import com.example.aibasedlanguagetranslator.R // Import for logo
 
 @Composable
-fun RegisterScreen(navController: NavController) {
-    var fullName by remember { mutableStateOf("") }
+fun LoginScreen(navController: NavController) {
     var username by remember { mutableStateOf("") }
-    var gender by remember { mutableStateOf("Nam") }
     var password by remember { mutableStateOf("") }
 
     Column(
@@ -33,10 +30,12 @@ fun RegisterScreen(navController: NavController) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Quay lại
+        // Đưa biểu tượng "Back" vào trong TopAppBar
         IconButton(
             onClick = { navController.popBackStack() },
-            modifier = Modifier.align(Alignment.Start)
+            modifier = Modifier
+                .align(Alignment.Start)
+                .padding(top = 16.dp)  // Thêm khoảng cách trên để đưa lên phía trên
         ) {
             Icon(
                 imageVector = Icons.Default.ArrowBack,
@@ -54,25 +53,7 @@ fun RegisterScreen(navController: NavController) {
                 .padding(bottom = 32.dp)
         )
 
-        // Full Name
-        TextField(
-            value = fullName,
-            onValueChange = { fullName = it },
-            label = { Text("Họ tên") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            colors = TextFieldDefaults.colors(
-//                textColor = Color.Black,
-//                containerColor = Color.White,
-//                focusedIndicatorColor = Color(0xFF4285F4),
-//                unfocusedIndicatorColor = Color.Gray,
-//                focusedLabelColor = Color(0xFF4285F4),
-//                unfocusedLabelColor = Color.Gray
-            )
-        )
-
-        // Username
+        // Tên tài khoản
         TextField(
             value = username,
             onValueChange = { username = it },
@@ -81,57 +62,28 @@ fun RegisterScreen(navController: NavController) {
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
             colors = TextFieldDefaults.colors(
-//                textColor = Color.Black,
-//                containerColor = Color.White,
-//                focusedIndicatorColor = Color(0xFF4285F4),
-//                unfocusedIndicatorColor = Color.Gray,
-//                focusedLabelColor = Color(0xFF4285F4),
-//                unfocusedLabelColor = Color.Gray
+//               text color
             )
         )
 
-        // Password
+        // Mật khẩu
         TextField(
             value = password,
             onValueChange = { password = it },
             label = { Text("Mật khẩu") },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp, bottom = 16.dp),
+                .padding(bottom = 24.dp),
             visualTransformation = PasswordVisualTransformation(),
             colors = TextFieldDefaults.colors(
 //                textColor = Color.Black,
 //                containerColor = Color.White,
 //                focusedIndicatorColor = Color(0xFF4285F4),
-//                unfocusedIndicatorColor = Color.Gray,
-//                focusedLabelColor = Color(0xFF4285F4),
-//                unfocusedLabelColor = Color.Gray
+//                unfocusedIndicatorColor = Color.Gray
             )
         )
 
-        // Gender Selection
-        Text(
-            "Giới tính",
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            RadioButton(
-                selected = gender == "Nam",
-                onClick = { gender = "Nam" }
-            )
-            Text("Nam", modifier = Modifier.padding(end = 16.dp))
-
-            RadioButton(
-                selected = gender == "Nữ",
-                onClick = { gender = "Nữ" }
-            )
-            Text("Nữ")
-        }
-
-        // Register Button
+        // Đăng nhập button
         Button(
             onClick = { navController.navigate("translate") },  // Điều hướng tới màn hình dịch
             modifier = Modifier
@@ -140,22 +92,22 @@ fun RegisterScreen(navController: NavController) {
             shape = RoundedCornerShape(8.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4285F4))
         ) {
-            Text("Đăng ký", color = Color.White)
+            Text("Đăng nhập", color = Color.White)
         }
 
-        // Redirect to Login
+        // Chưa có tài khoản? Đăng ký
         TextButton(
-            onClick = { navController.navigate("login") },  // Điều hướng tới màn hình đăng nhập
+            onClick = { navController.navigate("register") },  // Điều hướng tới màn hình đăng ký
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Đã có tài khoản? Đăng nhập", color = Color(0xFF4285F4))
+            Text("Chưa có tài khoản? Đăng ký", color = Color(0xFF4285F4))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // Footer Text with Terms & Privacy
         Text(
-            text = "By signing up, you agree to our Terms of Service and Privacy Policy",
+            text = "By signing in, you agree to our Terms of Service and Privacy Policy",
             fontSize = 12.sp,
             color = Color.Gray,
             modifier = Modifier.padding(top = 16.dp),

@@ -1,4 +1,4 @@
-package com.example.aibasedlanguagetranslator.ui
+package com.example.aibasedlanguagetranslator.ui.page
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -18,27 +18,58 @@ import androidx.compose.foundation.verticalScroll
 import androidx.navigation.NavController
 import com.example.aibasedlanguagetranslator.ui.components.LanguageSelector
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.aibasedlanguagetranslator.apiService.RetrofitInstance
+import com.example.aibasedlanguagetranslator.repository.TranslationRepository
+import com.example.aibasedlanguagetranslator.ui.components.TranslateHeader
 import com.example.aibasedlanguagetranslator.viewmodel.TranslateViewModel
+import com.example.aibasedlanguagetranslator.viewmodel.TranslateViewModelFactory
+import kotlinx.coroutines.delay
+
+val previousTranslations = listOf(
+    "hello I am Hrittika" to "helo main ritika",
+    "How are you?" to "tum kaise ho?",
+    "Good morning" to "suprabhat",
+)
 
 @Composable
 fun TranslateScreen(navController: NavController) {
-    val isLoggedIn by remember { mutableStateOf(false) }
-    val userName by remember { mutableStateOf("Hrittika") }
+    val isLoggedIn = false
+    val userName = "Hrittika"
 
     // Languages list
-    val languageList = listOf("Vietnamese", "English", "Chinese", "Japanese")
+    val languageList = listOf(
+        "Arabic",
+        "Chinese",
+        "English",
+        "French",
+        "German",
+        "Hindi",
+        "Italian",
+        "Japanese",
+        "Korean",
+        "Portuguese",
+        "Russian",
+        "Spanish",
+        "Turkish",
+        "Vietnamese"
+    )
 
     var sourceLanguage by remember { mutableStateOf("Vietnamese") }
     var targetLanguage by remember { mutableStateOf("English") }
 
-    val viewModel: TranslateViewModel = viewModel()
+    val viewModel: TranslateViewModel = viewModel(
+        factory = TranslateViewModelFactory(
+            TranslationRepository(api = RetrofitInstance.api)
+        )
+    )
     val translatedText by viewModel.translatedText.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
-    var inputText by remember { mutableStateOf("") }
+    var inputText by rememberSaveable { mutableStateOf("") }
 
     // loading effect
     val isLoading by viewModel.isLoading.collectAsState()
@@ -49,6 +80,7 @@ fun TranslateScreen(navController: NavController) {
     // Debounce + API call mỗi khi input hoặc ngôn ngữ đổi
     LaunchedEffect(inputText, sourceLanguage, targetLanguage) {
         if (inputText.isNotBlank()) {
+            delay(500) // debounce 0.5s sau khi gõ
             viewModel.translate(
                 text = inputText,
                 sourceLang = getLanguageCode(sourceLanguage),
@@ -58,12 +90,6 @@ fun TranslateScreen(navController: NavController) {
             viewModel.setTranslatedText("")
         }
     }
-
-    val previousTranslations = listOf(
-        "hello I am Hrittika" to "helo main ritika",
-        "How are you?" to "tum kaise ho?",
-        "Good morning" to "suprabhat",
-    )
 
     Column(
         modifier = Modifier
@@ -265,7 +291,9 @@ fun TranslateScreen(navController: NavController) {
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.End
                             ) {
-                                IconButton(onClick = { /* TODO: Copy */ }) {
+                                IconButton(onClick = {
+                                    clipboardManager.setText(AnnotatedString(translatedText))
+                                }) {
                                     Icon(
                                         Icons.Default.ContentCopy,
                                         contentDescription = "Copy",
@@ -333,30 +361,60 @@ fun TranslateScreen(navController: NavController) {
 
 fun getLanguageLabel(language: String): String {
     return when (language.lowercase()) {
-        "vietnamese" -> "TIẾNG VIỆT"
         "english" -> "ENGLISH"
+        "arabic" -> "TIẾNG Ả RẬP"
         "chinese" -> "TIẾNG TRUNG"
+        "french" -> "TIẾNG PHÁP"
+        "german" -> "TIẾNG ĐỨC"
+        "hindi" -> "TIẾNG HINDI"
+        "italian" -> "TIẾNG Ý"
         "japanese" -> "TIẾNG NHẬT"
+        "korean" -> "TIẾNG HÀN"
+        "portuguese" -> "TIẾNG BỒ ĐÀO NHA"
+        "russian" -> "TIẾNG NGA"
+        "spanish" -> "TIẾNG TÂY BAN NHA"
+        "turkish" -> "TIẾNG THỔ NHĨ KỲ"
+        "vietnamese" -> "TIẾNG VIỆT"
         else -> language.uppercase()
     }
 }
 
 fun getPlaceholder(language: String): String {
     return when (language.lowercase()) {
-        "vietnamese" -> "Nhập văn bản"
         "english" -> "Enter text"
+        "arabic" -> "أدخل النص"
         "chinese" -> "输入文本"
+        "french" -> "Entrez le texte"
+        "german" -> "Text eingeben"
+        "hindi" -> "पाठ दर्ज करें"
+        "italian" -> "Inserisci il testo"
         "japanese" -> "テキストを入力"
+        "korean" -> "텍스트 입력"
+        "portuguese" -> "Insira o texto"
+        "russian" -> "Введите текст"
+        "spanish" -> "Ingrese texto"
+        "turkish" -> "Metni girin"
+        "vietnamese" -> "Nhập văn bản"
         else -> "Enter text"
     }
 }
 
 fun getLanguageCode(language: String): String {
     return when (language.lowercase()) {
-        "vietnamese" -> "vi"
         "english" -> "en"
+        "arabic" -> "ar"
         "chinese" -> "zh"
+        "french" -> "fr"
+        "german" -> "de"
+        "hindi" -> "hi"
+        "italian" -> "it"
         "japanese" -> "ja"
+        "korean" -> "ko"
+        "portuguese" -> "pt"
+        "russian" -> "ru"
+        "spanish" -> "es"
+        "turkish" -> "tr"
+        "vietnamese" -> "vi"
         else -> "en" // fallback
     }
 }

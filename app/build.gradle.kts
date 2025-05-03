@@ -42,7 +42,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation (libs.androidx.compiler)
@@ -93,4 +92,14 @@ dependencies {
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
+
+    // Retrofit
+    implementation (libs.retrofit)
+    implementation (libs.converter.gson)
+
+    // Coroutine (nếu chưa có)
+    implementation (libs.kotlinx.coroutines.android)
+
+    // Gson (nếu chưa có)
+    implementation (libs.gson)
 }
