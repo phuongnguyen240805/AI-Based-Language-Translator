@@ -1,10 +1,10 @@
 package com.example.aibasedlanguagetranslator.ui.page
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -24,10 +24,16 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aibasedlanguagetranslator.apiService.RetrofitInstance
 import com.example.aibasedlanguagetranslator.repository.TranslationRepository
+import com.example.aibasedlanguagetranslator.ui.components.ConfirmationDialog
+import com.example.aibasedlanguagetranslator.ui.components.HistoryItem
+import com.example.aibasedlanguagetranslator.ui.components.TranslateBottomBar
 import com.example.aibasedlanguagetranslator.ui.components.TranslateHeader
+import com.example.aibasedlanguagetranslator.ui.components.TranslateInput
+import com.example.aibasedlanguagetranslator.ui.components.TranslateOutput
 import com.example.aibasedlanguagetranslator.viewmodel.TranslateViewModel
 import com.example.aibasedlanguagetranslator.viewmodel.TranslateViewModelFactory
 import kotlinx.coroutines.delay
+import kotlin.system.exitProcess
 
 val previousTranslations = listOf(
     "hello I am Hrittika" to "helo main ritika",
@@ -38,6 +44,25 @@ val previousTranslations = listOf(
 @Composable
 fun TranslateScreen(navController: NavController) {
     val isLoggedIn = false
+
+    //    middleware save
+    var showLoginDialog by remember { mutableStateOf(false) }
+    if (showLoginDialog) {
+        ConfirmationDialog(
+            title = "Yêu cầu đăng nhập",
+            message = "Bạn cần đăng nhập để lưu bản dịch. Chuyển đến màn hình đăng nhập?",
+            confirmText = "Đăng nhập",
+            dismissText = "Hủy",
+            onConfirm = {
+                showLoginDialog = false
+                navController.navigate("login")
+            },
+            onDismiss = {
+                showLoginDialog = false
+            }
+        )
+    }
+
     val userName = "Hrittika"
 
     // Languages list
@@ -91,273 +116,188 @@ fun TranslateScreen(navController: NavController) {
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFEAF0FB))
-            .padding(12.dp)
-            .verticalScroll(rememberScrollState()) // scroll được toàn bộ
-    ) {
-        // Header
-        TranslateHeader(
-            isLoggedIn = isLoggedIn,
-            userName = userName,
-            onLoginClick = { navController.navigate("login") }
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Language Switcher
-        Row(
+    Scaffold(
+        bottomBar = { TranslateBottomBar() }
+    ) { paddingValues ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .background(Color(0xFFEAF0FB))
+                .padding(paddingValues)      // <-- quan trọng: tránh đè footer
+                .padding(12.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                LanguageSelector(
-                    selectedLanguage = sourceLanguage,
-                    onLanguageSelected = {
-                        sourceLanguage = it
-                        viewModel.setTranslatedText("")
-                    },
-                    languageList = languageList
-                )
-            }
+            // Header
+            TranslateHeader(
+                isLoggedIn = isLoggedIn,
+                userName = userName,
+                onLoginClick = { navController.navigate("login") }
+            )
 
-            // Swap button
-            Box(modifier = Modifier.width(48.dp), contentAlignment = Alignment.Center) {
-                IconButton(onClick = {
-                    val temp = sourceLanguage
-                    sourceLanguage = targetLanguage
-                    targetLanguage = temp
-                    viewModel.setTranslatedText("")
-                }) {
-                    Icon(Icons.Default.SwapHoriz, contentDescription = "Swap")
-                }
-            }
-
-            // Right language selector
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                LanguageSelector(
-                    selectedLanguage = targetLanguage,
-                    onLanguageSelected = {
-                        targetLanguage = it
-                        viewModel.setTranslatedText("")
-                    },
-                    languageList = languageList
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Input Box
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(getLanguageLabel(sourceLanguage), color = Color.Gray, fontSize = 12.sp)
-
-                TextField(
-                    value = inputText,
-                    onValueChange = { inputText = it },
-                    placeholder = { Text(getPlaceholder(sourceLanguage)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    IconButton(onClick = {}) {
-                        Icon(Icons.Default.CameraAlt, contentDescription = "Camera")
-                    }
-                    IconButton(onClick = {}) {
-                        Icon(Icons.Default.Edit, contentDescription = "Handwriting")
-                    }
-                    IconButton(onClick = {}) {
-                        Icon(Icons.Default.Mic, contentDescription = "Microphone")
-                    }
-                    IconButton(onClick = {}) {
-                        Icon(Icons.Default.VolumeUp, contentDescription = "Voice")
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Translated Box
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF4285F4))
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(getLanguageLabel(targetLanguage), color = Color.White, fontSize = 12.sp)
-                if (isLoading) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                } else {
-                    Text(
-                        text = translatedText,
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    IconButton(onClick = {}) {
-                        Icon(Icons.Default.Share, contentDescription = null, tint = Color.White)
-                    }
-                    IconButton(onClick = {
-                        clipboardManager.setText(AnnotatedString(translatedText))
-                    }) {
-                        Icon(
-                            Icons.Default.ContentCopy,
-                            contentDescription = null,
-                            tint = Color.White
-                        )
-                    }
-                    IconButton(onClick = {}) {
-                        Icon(
-                            Icons.Default.StarBorder,
-                            contentDescription = "Save",
-                            tint = Color.White
-                        )
-                    }
-                }
-            }
-        }
-
-        // Error message
-        errorMessage?.let {
             Spacer(modifier = Modifier.height(8.dp))
-            Text(text = it, color = Color.Red, fontSize = 14.sp)
-        }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // History Title
-        Text(
-            text = "History",
-            fontWeight = FontWeight.Bold,
-            fontSize = 18.sp,
-            modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
-        )
-
-        // History List
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .background(Color.White)
-                .padding(8.dp)
-        ) {
-            Column(
+            // Language Switcher
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                previousTranslations.forEach { (original, translated) ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(original, fontSize = 14.sp, color = Color.Gray)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(translated, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    LanguageSelector(
+                        selectedLanguage = sourceLanguage,
+                        onLanguageSelected = {
+                            sourceLanguage = it
+                            viewModel.setTranslatedText("")
+                        },
+                        languageList = languageList
+                    )
+                }
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                IconButton(onClick = {
-                                    clipboardManager.setText(AnnotatedString(translatedText))
-                                }) {
-                                    Icon(
-                                        Icons.Default.ContentCopy,
-                                        contentDescription = "Copy",
-                                        tint = Color.Black
-                                    )
+                // Swap button
+                Box(modifier = Modifier.width(48.dp), contentAlignment = Alignment.Center) {
+                    IconButton(onClick = {
+                        val temp = sourceLanguage
+                        sourceLanguage = targetLanguage
+                        targetLanguage = temp
+                        viewModel.setTranslatedText("")
+                    }) {
+                        Icon(Icons.Default.SwapHoriz, contentDescription = "Swap")
+                    }
+                }
+
+                // Right language selector
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    LanguageSelector(
+                        selectedLanguage = targetLanguage,
+                        onLanguageSelected = {
+                            targetLanguage = it
+                            viewModel.setTranslatedText("")
+                        },
+                        languageList = languageList
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Input Box
+            TranslateInput(
+                inputText = inputText,
+                sourceLanguage = sourceLanguage,
+                onInputChange = { inputText = it },
+                onCopyClick = { clipboardManager.setText(AnnotatedString(inputText)) },
+                onClearClick = { inputText = "" },
+                onMicClick = { /* TODO */ },
+                onVolumeClick = { /* TODO */ }
+            )
+
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Translated Box
+            TranslateOutput(
+                targetLanguage = targetLanguage,
+                translatedText = translatedText,
+                isLoading = isLoading,
+                clipboardManager = clipboardManager,
+                onVolumeClick = {
+                    // TODO: read text
+                },
+                onCopyClick = {
+                    clipboardManager.setText(AnnotatedString(translatedText))
+                },
+                onSaveClick = {
+                    if (!isLoggedIn) {
+                        showLoginDialog = true
+                    } else {
+                        // TODO: lưu dữ liệu
+                    }
+                }
+            )
+
+            // Error message
+            errorMessage?.let {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = it, color = Color.Red, fontSize = 14.sp)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // History Title
+            Text(
+                text = "History",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
+            )
+
+            // History List inside a Card with scroll
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 100.dp, max = 240.dp), // Giới hạn chiều cao khung
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        previousTranslations.forEach { (original, translated) ->
+                            HistoryItem(
+                                original = original,
+                                translated = translated,
+                                onCopyClick = {
+                                    clipboardManager.setText(AnnotatedString(translated))
+                                },
+                                onSaveClick = {
+                                    if (!isLoggedIn) {
+                                        showLoginDialog = true
+                                    } else {
+                                        // TODO: lưu dữ liệu
+                                    }
+                                },
+                                onDeleteClick = {
+                                    // TODO: handle delete
                                 }
-                                IconButton(onClick = { /* TODO: Save */ }) {
-                                    Icon(
-                                        Icons.Default.StarBorder,
-                                        contentDescription = "Save",
-                                        tint = Color.Black
-                                    )
-                                }
-                            }
+                            )
                         }
                     }
                 }
             }
         }
+    }
 
-        // Bottom Navigation
-        NavigationBar(containerColor = Color.White) {
-            NavigationBarItem(
-                icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                label = { Text("Home") },
-                selected = true,
-                onClick = {},
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color.White,
-                    selectedTextColor = Color(0xFF4285F4),
-                    indicatorColor = Color(0xFF4285F4),
-                    unselectedIconColor = Color.Gray,
-                    unselectedTextColor = Color.Gray
-                )
-            )
-            NavigationBarItem(
-                icon = { Icon(Icons.Default.Star, contentDescription = "Saved") },
-                label = { Text("Saved") },
-                selected = false,
-                onClick = {},
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color.Gray,
-                    selectedTextColor = Color.Gray,
-                    indicatorColor = Color.Transparent,
-                    unselectedIconColor = Color.Gray,
-                    unselectedTextColor = Color.Gray
-                )
-            )
-            NavigationBarItem(
-                icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                label = { Text("Settings") },
-                selected = false,
-                onClick = {},
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color.Gray,
-                    selectedTextColor = Color.Gray,
-                    indicatorColor = Color.Transparent,
-                    unselectedIconColor = Color.Gray,
-                    unselectedTextColor = Color.Gray
-                )
-            )
-        }
+    //    middleware exit
+    var showExitDialog by remember { mutableStateOf(false) }
+    BackHandler {
+        showExitDialog = true
+    }
+
+    if (showExitDialog) {
+        ConfirmationDialog(
+            title = "Thoát khỏi trình dịch",
+            message = "Bạn có chắc chắn muốn rời khỏi màn hình này?",
+            confirmText = "Thoát",
+            dismissText = "Hủy",
+            onConfirm = {
+                showExitDialog = false
+                exitProcess(0)
+            },
+            onDismiss = {
+                showExitDialog = false
+            }
+        )
     }
 }
+
 
 fun getLanguageLabel(language: String): String {
     return when (language.lowercase()) {

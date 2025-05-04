@@ -14,8 +14,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.padding
 
 @Composable
@@ -28,9 +26,8 @@ fun TranslateHeader(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(WindowInsets.statusBars.asPaddingValues()) // Để tránh bị che bởi status bar
-            .height(56.dp)
-            .padding(horizontal = 12.dp),
+            .padding(top = 8.dp, start = 12.dp, end = 12.dp)
+            .height(56.dp),
         shape = RoundedCornerShape(12.dp), // Áp dụng border radius cho Card
         colors = CardDefaults.cardColors(containerColor = Color(0xFF4285F4)) // Màu nền của Header
     ) {
@@ -81,7 +78,3 @@ fun TranslateHeader(
         }
     }
 }
-
-
-
-
