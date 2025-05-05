@@ -1,5 +1,6 @@
 package com.example.aibasedlanguagetranslator.ui.page
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,18 +11,22 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.aibasedlanguagetranslator.R // Import for logo
+import com.example.aibasedlanguagetranslator.R
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun LoginScreen(navController: NavController) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val auth = remember { FirebaseAuth.getInstance() }
 
     Column(
         modifier = Modifier
@@ -30,12 +35,12 @@ fun LoginScreen(navController: NavController) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Đưa biểu tượng "Back" vào trong TopAppBar
+        // Nút quay lại
         IconButton(
             onClick = { navController.popBackStack() },
             modifier = Modifier
                 .align(Alignment.Start)
-                .padding(top = 16.dp)  // Thêm khoảng cách trên để đưa lên phía trên
+                .padding(top = 16.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.ArrowBack,
@@ -46,7 +51,7 @@ fun LoginScreen(navController: NavController) {
 
         // Logo
         Image(
-            painter = painterResource(id = R.drawable.baseline_g_translate_24), // Thay đổi logo của bạn
+            painter = painterResource(id = R.drawable.baseline_g_translate_24),
             contentDescription = "App Logo",
             modifier = Modifier
                 .size(120.dp)
@@ -60,10 +65,7 @@ fun LoginScreen(navController: NavController) {
             label = { Text("Tên tài khoản") },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            colors = TextFieldDefaults.colors(
-//               text color
-            )
+                .padding(bottom = 16.dp)
         )
 
         // Mật khẩu
@@ -71,21 +73,31 @@ fun LoginScreen(navController: NavController) {
             value = password,
             onValueChange = { password = it },
             label = { Text("Mật khẩu") },
+            visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 24.dp),
-            visualTransformation = PasswordVisualTransformation(),
-            colors = TextFieldDefaults.colors(
-//                textColor = Color.Black,
-//                containerColor = Color.White,
-//                focusedIndicatorColor = Color(0xFF4285F4),
-//                unfocusedIndicatorColor = Color.Gray
-            )
+                .padding(bottom = 24.dp)
         )
 
         // Đăng nhập button
         Button(
-            onClick = { navController.navigate("translate") },  // Điều hướng tới màn hình dịch
+            onClick = {
+                if (username.isNotBlank() && password.isNotBlank()) {
+                    auth.signInWithEmailAndPassword(username, password)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                Toast.makeText(context, "Đăng nhập thành công", Toast.LENGTH_SHORT).show()
+                                navController.navigate("translate") {
+                                    popUpTo("login") { inclusive = true }
+                                }
+                            } else {
+                                Toast.makeText(context, "Đăng nhập thất bại: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                } else {
+                    Toast.makeText(context, "Vui lòng nhập đầy đủ thông tin", Toast.LENGTH_SHORT).show()
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
@@ -95,9 +107,9 @@ fun LoginScreen(navController: NavController) {
             Text("Đăng nhập", color = Color.White)
         }
 
-        // Chưa có tài khoản? Đăng ký
+        // Điều hướng tới trang đăng ký
         TextButton(
-            onClick = { navController.navigate("register") },  // Điều hướng tới màn hình đăng ký
+            onClick = { navController.navigate("register") },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Chưa có tài khoản? Đăng ký", color = Color(0xFF4285F4))
@@ -105,7 +117,7 @@ fun LoginScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Footer Text with Terms & Privacy
+        // Ghi chú cuối trang
         Text(
             text = "By signing in, you agree to our Terms of Service and Privacy Policy",
             fontSize = 12.sp,

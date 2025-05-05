@@ -32,6 +32,7 @@ import com.example.aibasedlanguagetranslator.ui.components.TranslateInput
 import com.example.aibasedlanguagetranslator.ui.components.TranslateOutput
 import com.example.aibasedlanguagetranslator.viewmodel.TranslateViewModel
 import com.example.aibasedlanguagetranslator.viewmodel.TranslateViewModelFactory
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import kotlin.system.exitProcess
 
@@ -42,7 +43,10 @@ val previousTranslations = listOf(
 )
 
 @Composable
+
 fun TranslateScreen(navController: NavController) {
+    val currentUser = FirebaseAuth.getInstance().currentUser
+
     val isLoggedIn = false
 
     //    middleware save
