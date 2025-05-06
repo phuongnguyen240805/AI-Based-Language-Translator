@@ -9,6 +9,7 @@ import com.example.aibasedlanguagetranslator.ui.page.RegisterScreen
 import com.example.aibasedlanguagetranslator.ui.page.SettingsScreenWrapper
 import com.example.aibasedlanguagetranslator.ui.page.TranslateScreen
 import com.example.aibasedlanguagetranslator.viewmodel.SettingsViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun AppNavGraph(
@@ -21,16 +22,19 @@ fun AppNavGraph(
         composable("register") { RegisterScreen(navController) }
 
         composable("settings") {
+
             SettingsScreenWrapper(
                 navController = navController,
                 viewModel = settingsViewModel,
                 onLogoutClick = {
-                    navController.navigate("translate") {
-                        popUpTo("translate") { inclusive = true }
+                    FirebaseAuth.getInstance().signOut() // đăng xuất khỏi Firebase
+                    navController.navigate("login") {   // điều hướng về màn hình đăng nhập
+                        popUpTo("translate") { inclusive = true } // xóa stack để không quay lại được
                         launchSingleTop = true
                     }
                 }
             )
         }
+
     }
 }

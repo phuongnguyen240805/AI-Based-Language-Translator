@@ -43,7 +43,7 @@ fun TranslateBottomBar(navController: NavController) {
             selected = currentRoute == "saved",
             onClick = {
                 if (currentRoute != "saved") {
-                    navController.navigate("translate") // thay "saved" thành "translate" để tránh crash
+                    navController.navigate("saved") // thay "saved" thành "translate" để tránh crash
                 }
             },
             colors = NavigationBarItemDefaults.colors(
