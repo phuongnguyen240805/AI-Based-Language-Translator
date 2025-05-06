@@ -37,8 +37,7 @@ import kotlinx.coroutines.delay
 import kotlin.system.exitProcess
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.launch
+
 
 // Data class for translations
 data class TranslationItem(
@@ -162,12 +161,13 @@ fun TranslateScreen(navController: NavController) {
     }
 
     Scaffold(
-        bottomBar = { TranslateBottomBar() }
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = { TranslateBottomBar(navController) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFEAF0FB))
+                .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)      // <-- quan trọng: tránh đè footer
                 .padding(12.dp)
                 .verticalScroll(rememberScrollState())
@@ -306,7 +306,7 @@ fun TranslateScreen(navController: NavController) {
             saveError?.let {
                 Text(
                     text = it,
-                    color = Color.Red,
+                    color = MaterialTheme.colorScheme.error,
                     fontSize = 14.sp,
                     modifier = Modifier.padding(8.dp)
                 )
@@ -315,7 +315,7 @@ fun TranslateScreen(navController: NavController) {
             // Error message
             errorMessage?.let {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = it, color = Color.Red, fontSize = 14.sp)
+                Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 14.sp)
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -325,6 +325,7 @@ fun TranslateScreen(navController: NavController) {
                 text = "History",
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
             )
 
@@ -334,7 +335,7 @@ fun TranslateScreen(navController: NavController) {
                     .fillMaxWidth()
                     .heightIn(min = 100.dp, max = 240.dp), // Giới hạn chiều cao khung
                 shape = RoundedCornerShape(8.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Box(
                     modifier = Modifier
@@ -348,7 +349,7 @@ fun TranslateScreen(navController: NavController) {
                         ) {
                             Text(
                                 text = if (isLoggedIn) "No translation history yet" else "Login to view your history",
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 16.sp
                             )
                         }
@@ -376,7 +377,8 @@ fun TranslateScreen(navController: NavController) {
                                                 .delete()
                                                 .addOnSuccessListener {
                                                     // Cập nhật UI sau khi xóa thành công
-                                                    userTranslations = userTranslations.filter { it.id != item.id }
+                                                    userTranslations =
+                                                        userTranslations.filter { it.id != item.id }
                                                 }
                                                 .addOnFailureListener { e ->
                                                     saveError = e.message
@@ -414,7 +416,6 @@ fun TranslateScreen(navController: NavController) {
         )
     }
 }
-
 
 
 fun getLanguageLabel(language: String): String {

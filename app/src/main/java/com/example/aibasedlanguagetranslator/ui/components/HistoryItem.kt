@@ -22,17 +22,22 @@ fun HistoryItem(
     onSaveClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
+    // Lấy màu nền và màu chữ từ MaterialTheme
+    val backgroundColor = MaterialTheme.colorScheme.surface
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+        colors = CardDefaults.cardColors(containerColor = backgroundColor)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text(original, fontSize = 14.sp, color = Color.Gray)
+            Text(original, fontSize = 14.sp, color = textColor)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(translated, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text(translated, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = textColor)
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -42,21 +47,21 @@ fun HistoryItem(
                     Icon(
                         imageVector = Icons.Default.ContentCopy,
                         contentDescription = "Copy",
-                        tint = Color.Black
+                        tint = iconTint
                     )
                 }
                 IconButton(onClick = onSaveClick) {
                     Icon(
                         imageVector = Icons.Default.StarBorder,
                         contentDescription = "Save",
-                        tint = Color.Black
+                        tint = iconTint
                     )
                 }
                 IconButton(onClick = onDeleteClick) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Delete",
-                        tint = Color.Black
+                        tint = iconTint
                     )
                 }
             }

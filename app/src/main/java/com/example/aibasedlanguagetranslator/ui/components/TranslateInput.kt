@@ -29,13 +29,20 @@ fun TranslateInput(
     onMicClick: () -> Unit = {},
     onVolumeClick: () -> Unit = {},
 ) {
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val textColor = MaterialTheme.colorScheme.onBackground
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(getLanguageLabel(sourceLanguage), color = Color.Gray, fontSize = 12.sp)
+            Text(
+                getLanguageLabel(sourceLanguage),
+                color = textColor,
+                fontSize = 12.sp
+            )
 
             Box(
                 modifier = Modifier
@@ -46,14 +53,19 @@ fun TranslateInput(
                 TextField(
                     value = inputText,
                     onValueChange = onInputChange,
-                    placeholder = { Text(getPlaceholder(sourceLanguage)) },
+                    placeholder = {
+                        Text(getPlaceholder(sourceLanguage), color = textColor.copy(alpha = 0.5f))
+                    },
                     modifier = Modifier.fillMaxSize(),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
                         disabledContainerColor = Color.Transparent,
                         focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
+                        unfocusedIndicatorColor = Color.Transparent,
+                        cursorColor = textColor,
+                        focusedTextColor = textColor,
+                        unfocusedTextColor = textColor
                     )
                 )
             }
@@ -72,6 +84,7 @@ fun TranslateInput(
                     Icon(
                         Icons.Default.ContentCopy,
                         contentDescription = "Copy",
+                        tint = textColor,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -79,6 +92,7 @@ fun TranslateInput(
                     Icon(
                         Icons.Default.Delete,
                         contentDescription = "Clear",
+                        tint = textColor,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -86,6 +100,7 @@ fun TranslateInput(
                     Icon(
                         Icons.Default.Mic,
                         contentDescription = "Microphone",
+                        tint = textColor,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -93,6 +108,7 @@ fun TranslateInput(
                     Icon(
                         Icons.Default.VolumeUp,
                         contentDescription = "Voice",
+                        tint = textColor,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -100,3 +116,4 @@ fun TranslateInput(
         }
     }
 }
+
