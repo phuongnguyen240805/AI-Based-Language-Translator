@@ -26,6 +26,7 @@ fun TranslateOutput(
     clipboardManager: ClipboardManager,
     onVolumeClick: () -> Unit,
     onCopyClick: () -> Unit,
+//    onSaveClick: @Composable () -> Unit
     onSaveClick: () -> Unit
 ) {
     Card(

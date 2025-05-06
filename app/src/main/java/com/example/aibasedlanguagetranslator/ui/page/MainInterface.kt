@@ -32,18 +32,61 @@ import com.example.aibasedlanguagetranslator.ui.components.TranslateInput
 import com.example.aibasedlanguagetranslator.ui.components.TranslateOutput
 import com.example.aibasedlanguagetranslator.viewmodel.TranslateViewModel
 import com.example.aibasedlanguagetranslator.viewmodel.TranslateViewModelFactory
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import kotlin.system.exitProcess
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.launch
 
-val previousTranslations = listOf(
-    "hello I am Hrittika" to "helo main ritika",
-    "How are you?" to "tum kaise ho?",
-    "Good morning" to "suprabhat",
+// Data class for translations
+data class TranslationItem(
+    val id: String = "",
+    val original: String = "",
+    val translated: String = "",
+    val timestamp: Long = 0L
 )
 
 @Composable
 fun TranslateScreen(navController: NavController) {
-    val isLoggedIn = false
+    val sourceText = remember { mutableStateOf("") }
+    val coroutineScope = rememberCoroutineScope()
+
+    val auth = FirebaseAuth.getInstance()
+    val currentUser = auth.currentUser
+    val db = FirebaseFirestore.getInstance()
+    val isLoggedIn = currentUser != null
+
+    var userTranslations by remember { mutableStateOf<List<TranslationItem>>(emptyList()) }
+
+    // Lấy lịch sử bản dịch từ Firestore khi người dùng đã đăng nhập
+    LaunchedEffect(isLoggedIn) {
+        if (isLoggedIn) {
+            db.collection("users")
+                .document(currentUser!!.uid)
+                .collection("translations")
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .limit(20)  // Giới hạn 20 bản dịch gần nhất
+                .get()
+                .addOnSuccessListener { result ->
+                    val translations = result.documents.mapNotNull { doc ->
+                        val data = doc.data ?: return@mapNotNull null
+                        TranslationItem(
+                            id = doc.id,
+                            original = data["original"] as? String ?: "",
+                            translated = data["translated"] as? String ?: "",
+                            timestamp = data["timestamp"] as? Long ?: 0L
+                        )
+                    }
+                    userTranslations = translations
+                }
+                .addOnFailureListener { exception ->
+                    // Xử lý lỗi khi không thể lấy dữ liệu
+                    println("Lỗi khi lấy lịch sử dịch: ${exception.message}")
+                }
+        }
+    }
 
     //    middleware save
     var showLoginDialog by remember { mutableStateOf(false) }
@@ -63,7 +106,9 @@ fun TranslateScreen(navController: NavController) {
         )
     }
 
-    val userName = "Hrittika"
+    val userName = currentUser?.displayName
+        ?: currentUser?.email
+        ?: "Khách"
 
     // Languages list
     val languageList = listOf(
@@ -185,17 +230,21 @@ fun TranslateScreen(navController: NavController) {
             TranslateInput(
                 inputText = inputText,
                 sourceLanguage = sourceLanguage,
-                onInputChange = { inputText = it },
+                onInputChange = {
+                    inputText = it
+                    sourceText.value = it
+                },
                 onCopyClick = { clipboardManager.setText(AnnotatedString(inputText)) },
                 onClearClick = { inputText = "" },
                 onMicClick = { /* TODO */ },
                 onVolumeClick = { /* TODO */ }
             )
 
-
             Spacer(modifier = Modifier.height(8.dp))
 
             // Translated Box
+            var isSaving by remember { mutableStateOf(false) }
+            var saveError by remember { mutableStateOf<String?>(null) }
             TranslateOutput(
                 targetLanguage = targetLanguage,
                 translatedText = translatedText,
@@ -210,11 +259,58 @@ fun TranslateScreen(navController: NavController) {
                 onSaveClick = {
                     if (!isLoggedIn) {
                         showLoginDialog = true
-                    } else {
-                        // TODO: lưu dữ liệu
+                    } else if (inputText.isNotBlank() && translatedText.isNotBlank()) {
+                        isSaving = true
+                        saveError = null
+
+                        // Lưu bản dịch vào Firestore
+                        val translation = hashMapOf(
+                            "original" to inputText,
+                            "translated" to translatedText,
+                            "timestamp" to System.currentTimeMillis()
+                        )
+
+                        db.collection("users")
+                            .document(currentUser!!.uid)
+                            .collection("translations")
+                            .add(translation)
+                            .addOnSuccessListener { documentRef ->
+                                isSaving = false
+
+                                // Thêm bản dịch mới vào danh sách hiện tại
+                                val newTranslation = TranslationItem(
+                                    id = documentRef.id,
+                                    original = inputText,
+                                    translated = translatedText,
+                                    timestamp = System.currentTimeMillis()
+                                )
+
+                                // Cập nhật danh sách hiển thị ngay lập tức
+                                userTranslations = listOf(newTranslation) + userTranslations
+                            }
+                            .addOnFailureListener { e ->
+                                isSaving = false
+                                saveError = e.message
+                            }
                     }
                 }
             )
+
+            // Hiển thị loading và error bên ngoài callback, trong context Composable
+            if (isSaving) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                }
+            }
+
+            saveError?.let {
+                Text(
+                    text = it,
+                    color = Color.Red,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
 
             // Error message
             errorMessage?.let {
@@ -245,29 +341,50 @@ fun TranslateScreen(navController: NavController) {
                         .fillMaxSize()
                         .padding(8.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        previousTranslations.forEach { (original, translated) ->
-                            HistoryItem(
-                                original = original,
-                                translated = translated,
-                                onCopyClick = {
-                                    clipboardManager.setText(AnnotatedString(translated))
-                                },
-                                onSaveClick = {
-                                    if (!isLoggedIn) {
-                                        showLoginDialog = true
-                                    } else {
-                                        // TODO: lưu dữ liệu
-                                    }
-                                },
-                                onDeleteClick = {
-                                    // TODO: handle delete
-                                }
+                    if (userTranslations.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (isLoggedIn) "No translation history yet" else "Login to view your history",
+                                color = Color.Gray,
+                                fontSize = 16.sp
                             )
+                        }
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            userTranslations.forEach { item ->
+                                HistoryItem(
+                                    original = item.original,
+                                    translated = item.translated,
+                                    onCopyClick = {
+                                        clipboardManager.setText(AnnotatedString(item.translated))
+                                    },
+                                    onSaveClick = { /* Already saved */ },
+                                    onDeleteClick = {
+                                        if (isLoggedIn) {
+                                            // Xóa bản dịch từ Firestore
+                                            db.collection("users")
+                                                .document(currentUser!!.uid)
+                                                .collection("translations")
+                                                .document(item.id)
+                                                .delete()
+                                                .addOnSuccessListener {
+                                                    // Cập nhật UI sau khi xóa thành công
+                                                    userTranslations = userTranslations.filter { it.id != item.id }
+                                                }
+                                                .addOnFailureListener { e ->
+                                                    saveError = e.message
+                                                }
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -297,6 +414,7 @@ fun TranslateScreen(navController: NavController) {
         )
     }
 }
+
 
 
 fun getLanguageLabel(language: String): String {

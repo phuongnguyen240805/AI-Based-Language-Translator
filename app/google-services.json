@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "372532329406",
+    "project_id": "ailta-3bd56",
+    "storage_bucket": "ailta-3bd56.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:372532329406:android:bc06c181cfed4a222297ef",
+        "android_client_info": {
+          "package_name": "com.example.aibasedlanguagetranslator"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQ0Wn5sCXcQKGpPG6Ai4rtzDA-GTUNbJM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
