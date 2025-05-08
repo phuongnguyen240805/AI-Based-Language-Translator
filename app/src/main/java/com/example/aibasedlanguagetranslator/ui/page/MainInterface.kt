@@ -1,6 +1,16 @@
 package com.example.aibasedlanguagetranslator.ui.page
 
+import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.speech.RecognizerIntent
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,15 +25,18 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.example.aibasedlanguagetranslator.ui.components.LanguageSelector
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aibasedlanguagetranslator.apiService.RetrofitInstance
 import com.example.aibasedlanguagetranslator.repository.TranslationRepository
+import com.example.aibasedlanguagetranslator.speech.SpeechRecognizerHelper
 import com.example.aibasedlanguagetranslator.ui.components.ConfirmationDialog
 import com.example.aibasedlanguagetranslator.ui.components.HistoryItem
 import com.example.aibasedlanguagetranslator.ui.components.TranslateBottomBar
@@ -37,7 +50,6 @@ import kotlinx.coroutines.delay
 import kotlin.system.exitProcess
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.launch
 
 // Data class for translations
@@ -47,6 +59,15 @@ data class TranslationItem(
     val translated: String = "",
     val timestamp: Long = 0L
 )
+
+// Hàm kiểm tra sự sẵn sàng của Speech Recognition trên thiết bị
+fun isSpeechRecognitionAvailable(context: Context): Boolean {
+    val packageManager = context.packageManager
+    val recognizerIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+    val activities = packageManager.queryIntentActivities(recognizerIntent, 0)
+    Log.d("SpeechRecognition", "Found ${activities.size} activities that can handle speech recognition")
+    return activities.isNotEmpty()
+}
 
 @Composable
 fun TranslateScreen(navController: NavController) {
@@ -59,6 +80,95 @@ fun TranslateScreen(navController: NavController) {
     val isLoggedIn = currentUser != null
 
     var userTranslations by remember { mutableStateOf<List<TranslationItem>>(emptyList()) }
+
+    // Context cho các permission và xử lý
+    val context = LocalContext.current
+
+    // Xử lý permission cho RECORD_AUDIO
+    var hasRecordAudioPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    // Launcher để yêu cầu quyền ghi âm
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasRecordAudioPermission = isGranted
+        if (!isGranted) {
+            Toast.makeText(
+                context,
+                "Cần cấp quyền ghi âm để sử dụng tính năng nhận diện giọng nói",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    // Kiểm tra sự hỗ trợ Speech Recognition
+    val isSpeechRecognitionSupported = remember {
+        val supported = isSpeechRecognitionAvailable(context)
+        Log.d("TranslateScreen", "Speech Recognition supported: $supported")
+        supported
+    }
+
+    // Khởi tạo Speech Recognition Helper
+    val speechRecognizerHelper = remember { SpeechRecognizerHelper() }
+
+    // Đăng ký ActivityResultLauncher cho speech recognition
+    val speechLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        try {
+            val resultCode = result.resultCode
+            val data = result.data
+
+            when {
+                resultCode == Activity.RESULT_OK && data != null -> {
+                    val results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                    if (!results.isNullOrEmpty()) {
+                        val recognizedText = results[0]
+                        Log.d("SpeechRecognition", "Speech recognized: $recognizedText")
+                        speechRecognizerHelper.processRecognizedText(recognizedText)
+                    } else {
+                        Log.w("SpeechRecognition", "No speech recognized (empty results)")
+                        Toast.makeText(context, "Không nhận diện được giọng nói", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                resultCode == Activity.RESULT_CANCELED -> {
+                    Log.i("SpeechRecognition", "Speech recognition canceled by user")
+                    Toast.makeText(context, "Đã hủy nhận diện giọng nói", Toast.LENGTH_SHORT).show()
+                }
+                else -> {
+                    Log.w("SpeechRecognition", "Speech recognition failed with result code: $resultCode")
+                    Toast.makeText(context, "Không nhận được kết quả giọng nói", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("SpeechRecognition", "Error processing speech recognition result: ${e.message}", e)
+            Toast.makeText(context, "Lỗi xử lý kết quả: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Thiết lập callback khi component được tạo
+    var inputText by rememberSaveable { mutableStateOf("") }
+
+    LaunchedEffect(speechRecognizerHelper) {
+        try {
+            speechRecognizerHelper.setResultCallback { recognizedText ->
+                if (recognizedText.isNotBlank()) {
+                    inputText = recognizedText
+                    sourceText.value = recognizedText
+                }
+            }
+            Log.d("TranslateScreen", "Đã thiết lập callback thành công")
+        } catch (e: Exception) {
+            Log.e("TranslateScreen", "Lỗi khi thiết lập callback: ${e.message}", e)
+        }
+    }
 
     // Lấy lịch sử bản dịch từ Firestore khi người dùng đã đăng nhập
     LaunchedEffect(isLoggedIn) {
@@ -83,12 +193,13 @@ fun TranslateScreen(navController: NavController) {
                 }
                 .addOnFailureListener { exception ->
                     // Xử lý lỗi khi không thể lấy dữ liệu
-                    println("Lỗi khi lấy lịch sử dịch: ${exception.message}")
+                    Log.e("TranslateScreen", "Lỗi khi lấy lịch sử dịch: ${exception.message}")
+                    Toast.makeText(context, "Lỗi khi lấy lịch sử dịch: ${exception.message}", Toast.LENGTH_SHORT).show()
                 }
         }
     }
 
-    //    middleware save
+    // Middleware save
     var showLoginDialog by remember { mutableStateOf(false) }
     if (showLoginDialog) {
         ConfirmationDialog(
@@ -139,8 +250,6 @@ fun TranslateScreen(navController: NavController) {
     val translatedText by viewModel.translatedText.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
-    var inputText by rememberSaveable { mutableStateOf("") }
-
     // loading effect
     val isLoading by viewModel.isLoading.collectAsState()
 
@@ -161,6 +270,37 @@ fun TranslateScreen(navController: NavController) {
         }
     }
 
+    // Hàm để khởi động speech recognition
+    fun startSpeechRecognition(language: String) {
+        if (!isSpeechRecognitionSupported) {
+            Toast.makeText(context, "Thiết bị của bạn không hỗ trợ nhận diện giọng nói", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        if (!speechRecognizerHelper.ensureInitialized()) {
+            Toast.makeText(context, "Đang khởi tạo nhận diện giọng nói, vui lòng thử lại sau", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        try {
+            // Tạo và cấu hình intent
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, language)
+                putExtra(RecognizerIntent.EXTRA_PROMPT, "Hãy nói gì đó...")
+                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            }
+
+            // Khởi động nhận diện giọng nói
+            speechLauncher.launch(intent)
+            Log.d("TranslateScreen", "Đã bắt đầu nhận diện giọng nói với ngôn ngữ: $language")
+            Toast.makeText(context, "Đang lắng nghe...", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Log.e("TranslateScreen", "Lỗi khi bắt đầu nhận diện giọng nói: ${e.message}", e)
+            Toast.makeText(context, "Lỗi khi bắt đầu nhận diện giọng nói: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     Scaffold(
         bottomBar = { TranslateBottomBar() }
     ) { paddingValues ->
@@ -168,7 +308,7 @@ fun TranslateScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xFFEAF0FB))
-                .padding(paddingValues)      // <-- quan trọng: tránh đè footer
+                .padding(paddingValues)
                 .padding(12.dp)
                 .verticalScroll(rememberScrollState())
         ) {
@@ -199,7 +339,6 @@ fun TranslateScreen(navController: NavController) {
                     )
                 }
 
-                // Swap button
                 Box(modifier = Modifier.width(48.dp), contentAlignment = Alignment.Center) {
                     IconButton(onClick = {
                         val temp = sourceLanguage
@@ -211,7 +350,6 @@ fun TranslateScreen(navController: NavController) {
                     }
                 }
 
-                // Right language selector
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                     LanguageSelector(
                         selectedLanguage = targetLanguage,
@@ -236,7 +374,18 @@ fun TranslateScreen(navController: NavController) {
                 },
                 onCopyClick = { clipboardManager.setText(AnnotatedString(inputText)) },
                 onClearClick = { inputText = "" },
-                onMicClick = { /* TODO */ },
+                onMicClick = {
+                    // Kiểm tra và yêu cầu quyền trước khi bắt đầu ghi âm
+                    if (hasRecordAudioPermission) {
+                        // Sử dụng language code từ helper
+                        val recognitionLanguage = speechRecognizerHelper.getRecognitionLanguage(sourceLanguage)
+                        startSpeechRecognition(recognitionLanguage)
+                    } else {
+                        // Yêu cầu quyền ghi âm
+                        Log.d("TranslateScreen", "Yêu cầu quyền ghi âm")
+                        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                },
                 onVolumeClick = { /* TODO */ }
             )
 
@@ -287,10 +436,14 @@ fun TranslateScreen(navController: NavController) {
 
                                 // Cập nhật danh sách hiển thị ngay lập tức
                                 userTranslations = listOf(newTranslation) + userTranslations
+
+                                // Thông báo đã lưu thành công
+                                Toast.makeText(context, "Đã lưu bản dịch", Toast.LENGTH_SHORT).show()
                             }
                             .addOnFailureListener { e ->
                                 isSaving = false
                                 saveError = e.message
+                                Toast.makeText(context, "Lỗi: ${e.message}", Toast.LENGTH_SHORT).show()
                             }
                     }
                 }
@@ -364,6 +517,7 @@ fun TranslateScreen(navController: NavController) {
                                     translated = item.translated,
                                     onCopyClick = {
                                         clipboardManager.setText(AnnotatedString(item.translated))
+                                        Toast.makeText(context, "Đã sao chép vào clipboard", Toast.LENGTH_SHORT).show()
                                     },
                                     onSaveClick = { /* Already saved */ },
                                     onDeleteClick = {
@@ -377,9 +531,11 @@ fun TranslateScreen(navController: NavController) {
                                                 .addOnSuccessListener {
                                                     // Cập nhật UI sau khi xóa thành công
                                                     userTranslations = userTranslations.filter { it.id != item.id }
+                                                    Toast.makeText(context, "Đã xóa bản dịch", Toast.LENGTH_SHORT).show()
                                                 }
                                                 .addOnFailureListener { e ->
                                                     saveError = e.message
+                                                    Toast.makeText(context, "Lỗi khi xóa: ${e.message}", Toast.LENGTH_SHORT).show()
                                                 }
                                         }
                                     }
@@ -392,7 +548,7 @@ fun TranslateScreen(navController: NavController) {
         }
     }
 
-    //    middleware exit
+    // Middleware exit
     var showExitDialog by remember { mutableStateOf(false) }
     BackHandler {
         showExitDialog = true
@@ -414,8 +570,6 @@ fun TranslateScreen(navController: NavController) {
         )
     }
 }
-
-
 
 fun getLanguageLabel(language: String): String {
     return when (language.lowercase()) {
