@@ -9,6 +9,7 @@ import com.example.aibasedlanguagetranslator.ui.page.RegisterScreen
 import com.example.aibasedlanguagetranslator.ui.page.SettingsScreenWrapper
 import com.example.aibasedlanguagetranslator.ui.page.TranslateScreen
 import com.example.aibasedlanguagetranslator.ui.page.ChatAIScreen
+import com.example.aibasedlanguagetranslator.ui.page.EditProfileScreen
 import com.example.aibasedlanguagetranslator.viewmodel.SettingsViewModel
 import com.google.firebase.auth.FirebaseAuth
 
@@ -23,6 +24,9 @@ fun AppNavGraph(
         composable("register") { RegisterScreen(navController) }
 
         composable("chat") { ChatAIScreen(navController) }
+        composable("edit_profile") {
+            EditProfileScreen(navController)
+        }
 
         composable("settings") {
             SettingsScreenWrapper(
