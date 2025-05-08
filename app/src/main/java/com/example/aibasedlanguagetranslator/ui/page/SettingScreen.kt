@@ -18,14 +18,11 @@ fun SettingsScreenWrapper(
     onLogoutClick: () -> Unit
 ) {
     val isDarkMode by viewModel.isDarkMode.collectAsState()
-    val defaultLanguage by viewModel.defaultLanguage.collectAsState()
 
     SettingsScreen(
         navController = navController,
         isDarkMode = isDarkMode,
         onDarkModeToggle = { viewModel.toggleDarkMode(it) },
-        defaultLanguage = defaultLanguage,
-        onLanguageChange = { viewModel.setDefaultLanguage(it) },
         onLogoutClick = onLogoutClick
     )
 }
@@ -37,13 +34,8 @@ fun SettingsScreen(
     navController: NavController,
     isDarkMode: Boolean,
     onDarkModeToggle: (Boolean) -> Unit,
-    defaultLanguage: String,
-    onLanguageChange: (String) -> Unit,
     onLogoutClick: () -> Unit
 ) {
-    val languageOptions = listOf("English", "Vietnamese", "Japanese", "Korean")
-    var languageExpanded by remember { mutableStateOf(false) }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -71,38 +63,34 @@ fun SettingsScreen(
                 Switch(checked = isDarkMode, onCheckedChange = onDarkModeToggle)
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Default language selector
-            Text("Ngôn ngữ mặc định", fontSize = 16.sp)
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Box {
-                OutlinedButton(onClick = { languageExpanded = true }) {
-                    Text(defaultLanguage)
-                }
-
-                DropdownMenu(
-                    expanded = languageExpanded,
-                    onDismissRequest = { languageExpanded = false }
-                ) {
-                    languageOptions.forEach { option ->
-                        DropdownMenuItem(
-                            text = { Text(option) },
-                            onClick = {
-                                onLanguageChange(option)
-                                languageExpanded = false
-                            }
-                        )
-                    }
-                }
-            }
-
             Spacer(modifier = Modifier.height(40.dp))
 
             // Logout button
+            var showLogoutDialog by remember { mutableStateOf(false) }
+
+            if (showLogoutDialog) {
+                AlertDialog(
+                    onDismissRequest = { showLogoutDialog = false },
+                    title = { Text("Xác nhận đăng xuất") },
+                    text = { Text("Bạn có chắc chắn muốn đăng xuất không?") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showLogoutDialog = false
+                            onLogoutClick() // Gọi callback đăng xuất thật sự
+                        }) {
+                            Text("Đăng xuất")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showLogoutDialog = false }) {
+                            Text("Hủy")
+                        }
+                    }
+                )
+            }
+
             Button(
-                onClick = onLogoutClick,
+                onClick = { showLogoutDialog = true },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
             ) {
                 Text("Đăng xuất", color = MaterialTheme.colorScheme.onError)

@@ -1,9 +1,9 @@
 package com.example.aibasedlanguagetranslator.ui.components
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -36,14 +36,13 @@ fun TranslateBottomBar(navController: NavController) {
             )
         )
 
-        // Saved (tạm thời chưa có màn hình, điều hướng lại về "translate" để tránh crash)
         NavigationBarItem(
-            icon = { Icon(Icons.Default.Star, contentDescription = "Saved") },
-            label = { Text("Saved") },
-            selected = currentRoute == "saved",
+            icon = { Icon(Icons.Default.Chat, contentDescription = "Chat") },
+            label = { Text("Chat") },
+            selected = currentRoute == "chat",
             onClick = {
-                if (currentRoute != "saved") {
-                    navController.navigate("translate") // thay "saved" thành "translate" để tránh crash
+                if (currentRoute != "chat") {
+                    navController.navigate("chat")
                 }
             },
             colors = NavigationBarItemDefaults.colors(

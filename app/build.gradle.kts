@@ -47,7 +47,13 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+    implementation ("androidx.compose.material3:material3:<version>")
+    // Koin core
+    implementation ("io.insert-koin:koin-android:3.5.3")
 
+    // Koin cho Jetpack Compose
+    implementation ("io.insert-koin:koin-androidx-compose:3.5.3")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
