@@ -24,6 +24,7 @@ fun AppNavGraph(
         composable("register") { RegisterScreen(navController) }
 
         composable("chat") { ChatAIScreen(navController) }
+
         composable("edit_profile") {
             EditProfileScreen(navController)
         }
@@ -34,7 +35,7 @@ fun AppNavGraph(
                 viewModel = settingsViewModel,
                 onLogoutClick = {
                     FirebaseAuth.getInstance().signOut() // đăng xuất khỏi Firebase
-                    navController.navigate("login") {   // điều hướng về màn hình đăng nhập
+                    navController.navigate("translate") {   // điều hướng về màn hình đăng nhập
                         popUpTo("translate") {
                             inclusive = true
                         } // xóa stack để không quay lại được
