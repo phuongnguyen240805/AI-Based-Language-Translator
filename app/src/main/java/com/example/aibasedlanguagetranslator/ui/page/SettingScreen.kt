@@ -89,6 +89,20 @@ fun SettingsScreen(
                 )
             }
 
+            // Nút chỉnh sửa thông tin cá nhân
+            Button(
+                onClick = {
+                    // Điều hướng sang màn hình chỉnh sửa thông tin cá nhân
+                    navController.navigate("edit_profile") // bạn cần có màn hình này trong NavHost
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Chỉnh sửa thông tin cá nhân")
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+
             Button(
                 onClick = { showLogoutDialog = true },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.aibasedlanguagetranslator.R
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun RegisterScreen(navController: NavController) {
@@ -29,7 +30,9 @@ fun RegisterScreen(navController: NavController) {
     var username by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("Nam") }
     var password by remember { mutableStateOf("") }
+
     val auth = FirebaseAuth.getInstance()
+    val db = FirebaseFirestore.getInstance()
 
     Column(
         modifier = Modifier
@@ -96,12 +99,26 @@ fun RegisterScreen(navController: NavController) {
 
         Button(
             onClick = {
-                if (username.isNotBlank() && password.isNotBlank()) {
+                if (username.isNotBlank() && password.isNotBlank() && fullName.isNotBlank()) {
                     auth.createUserWithEmailAndPassword(username.trim(), password.trim())
                         .addOnCompleteListener { task ->
                             if (task.isSuccessful) {
-                                Toast.makeText(context, "Đăng ký thành công", Toast.LENGTH_SHORT).show()
-                                navController.navigate("translate")
+                                val userId = auth.currentUser?.uid.orEmpty()
+                                val user = hashMapOf(
+                                    "uid" to userId,
+                                    "fullname" to fullName.trim(),
+                                    "email" to username.trim(),
+                                    "gender" to gender
+                                )
+                                db.collection("userinfo").document(userId)
+                                    .set(user)
+                                    .addOnSuccessListener {
+                                        Toast.makeText(context, "Đăng ký thành công", Toast.LENGTH_SHORT).show()
+                                        navController.navigate("translate")
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Toast.makeText(context, "Lỗi lưu thông tin: ${e.message}", Toast.LENGTH_LONG).show()
+                                    }
                             } else {
                                 Toast.makeText(context, "Đăng ký thất bại: ${task.exception?.message}", Toast.LENGTH_LONG).show()
                             }
