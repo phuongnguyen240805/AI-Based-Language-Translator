@@ -50,6 +50,8 @@ import kotlin.system.exitProcess
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.launch
+import android.speech.tts.TextToSpeech
+import java.util.Locale
 
 // Data class for translations
 data class TranslationItem(
@@ -82,6 +84,80 @@ fun TranslateScreen(navController: NavController) {
 
     // Context cho các permission và xử lý
     val context = LocalContext.current
+
+    // Khởi tạo Text-to-Speech
+    var tts by remember { mutableStateOf<TextToSpeech?>(null) }
+
+    LaunchedEffect(Unit) {
+        tts = TextToSpeech(context) { status ->
+            if (status != TextToSpeech.ERROR) {
+                // Mặc định ban đầu tiếng Anh
+                tts?.language = Locale.ENGLISH
+                Log.d("TextToSpeech", "Đã khởi tạo TextToSpeech thành công")
+            } else {
+                Log.e("TextToSpeech", "Lỗi khởi tạo TextToSpeech: $status")
+            }
+        }
+    }
+
+    // Hàm xử lý đọc văn bản bằng TextToSpeech
+    fun speakText(text: String, languageCode: String) {
+        if (text.isBlank()) {
+            Toast.makeText(context, "Không có văn bản để đọc", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (tts == null) {
+            Toast.makeText(context, "Đang khởi tạo Text-to-Speech, vui lòng thử lại sau", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        try {
+            // Chuyển đổi ngôn ngữ
+            val locale = getLocaleForLanguage(languageCode)
+            val result = tts?.setLanguage(locale)
+
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                Toast.makeText(context, "Ngôn ngữ $languageCode không được hỗ trợ", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            // Đặt giọng nói ưu tiên (nếu có)
+            val voices = tts?.voices
+            voices?.find { it.locale == locale }?.let { voice ->
+                tts?.voice = voice
+            }
+
+            // Ngừng đọc trước đó (nếu có)
+            tts?.stop()
+
+            // Đặt tốc độ và âm lượng
+            tts?.setSpeechRate(1.0f)
+            tts?.setPitch(1.0f)
+
+            // Bắt đầu đọc
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "tts1")
+            } else {
+                @Suppress("DEPRECATION")
+                tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null)
+            }
+
+            Log.d("TextToSpeech", "Đang đọc văn bản [$languageCode]: $text")
+        } catch (e: Exception) {
+            Log.e("TextToSpeech", "Lỗi khi đọc văn bản: ${e.message}", e)
+            Toast.makeText(context, "Lỗi khi đọc văn bản: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Giải phóng tài nguyên TextToSpeech khi không cần nữa
+    DisposableEffect(Unit) {
+        onDispose {
+            tts?.stop()
+            tts?.shutdown()
+            Log.d("TextToSpeech", "Đã giải phóng tài nguyên TextToSpeech")
+        }
+    }
 
     // Xử lý permission cho RECORD_AUDIO
     var hasRecordAudioPermission by remember {
@@ -386,7 +462,14 @@ fun TranslateScreen(navController: NavController) {
                         permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                     }
                 },
-                onVolumeClick = { /* TODO */ }
+                onVolumeClick = {
+                    // Kích hoạt đọc văn bản đầu vào
+                    if (inputText.isNotBlank()) {
+                        speakText(inputText, sourceLanguage)
+                    } else {
+                        Toast.makeText(context, "Không có văn bản để đọc", Toast.LENGTH_SHORT).show()
+                    }
+                }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -400,7 +483,12 @@ fun TranslateScreen(navController: NavController) {
                 isLoading = isLoading,
                 clipboardManager = clipboardManager,
                 onVolumeClick = {
-                    // TODO: read text
+                    // Kích hoạt đọc văn bản đã dịch
+                    if (translatedText.isNotBlank()) {
+                        speakText(translatedText, targetLanguage)
+                    } else {
+                        Toast.makeText(context, "Không có văn bản để đọc", Toast.LENGTH_SHORT).show()
+                    }
                 },
                 onCopyClick = {
                     clipboardManager.setText(AnnotatedString(translatedText))
@@ -572,6 +660,7 @@ fun TranslateScreen(navController: NavController) {
     }
 }
 
+
 fun getLanguageLabel(language: String): String {
     return when (language.lowercase()) {
         "english" -> "ENGLISH"
@@ -629,5 +718,26 @@ fun getLanguageCode(language: String): String {
         "turkish" -> "tr"
         "vietnamese" -> "vi"
         else -> "en" // fallback
+    }
+
+
+    }
+fun getLocaleForLanguage(language: String): Locale {
+    return when (language.lowercase()) {
+        "vietnamese" -> Locale("vi", "VN")
+        "english" -> Locale("en", "US")
+        "french" -> Locale("fr", "FR")
+        "german" -> Locale("de", "DE")
+        "chinese" -> Locale.CHINA
+        "japanese" -> Locale.JAPAN
+        "korean" -> Locale.KOREA
+        "russian" -> Locale("ru", "RU")
+        "spanish" -> Locale("es", "ES")
+        "portuguese" -> Locale("pt", "PT")
+        "arabic" -> Locale("ar", "SA")
+        "hindi" -> Locale("hi", "IN")
+        "italian" -> Locale.ITALIAN
+        "turkish" -> Locale("tr", "TR")
+        else -> Locale.ENGLISH
     }
 }
