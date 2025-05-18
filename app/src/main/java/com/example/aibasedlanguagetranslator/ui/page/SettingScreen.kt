@@ -43,7 +43,7 @@ fun SettingsScreen(
             )
         },
         bottomBar = {
-            TranslateBottomBar(navController)
+            TranslateBottomBar(navController = navController, isDarkMode = isDarkMode)
         }
     ) { padding ->
         Column(

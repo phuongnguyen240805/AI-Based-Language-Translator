@@ -1,6 +1,8 @@
 package com.example.aibasedlanguagetranslator.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -18,12 +20,15 @@ fun AppNavGraph(
     navController: NavHostController,
     settingsViewModel: SettingsViewModel
 ) {
+
+    val isDarkMode by settingsViewModel.isDarkMode.collectAsState()
+
     NavHost(navController = navController, startDestination = "translate") {
-        composable("translate") { TranslateScreen(navController) }
+        composable("translate") { TranslateScreen(navController, isDarkMode) }
         composable("login") { LoginScreen(navController) }
         composable("register") { RegisterScreen(navController) }
 
-        composable("chat") { ChatAIScreen(navController) }
+        composable("chat") { ChatAIScreen(navController, isDarkMode) }
 
         composable("edit_profile") {
             EditProfileScreen(navController)

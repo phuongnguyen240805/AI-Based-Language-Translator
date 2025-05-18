@@ -73,7 +73,7 @@ fun isSpeechRecognitionAvailable(context: Context): Boolean {
 }
 
 @Composable
-fun TranslateScreen(navController: NavController) {
+fun TranslateScreen(navController: NavController, isDarkMode: Boolean) {
     val sourceText = remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
 
@@ -421,7 +421,7 @@ fun TranslateScreen(navController: NavController) {
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = { TranslateBottomBar(navController) }
+        bottomBar = { TranslateBottomBar(navController = navController, isDarkMode = isDarkMode) }
     ) { paddingValues ->
         Column(
             modifier = Modifier

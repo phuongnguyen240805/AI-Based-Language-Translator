@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.aibasedlanguagetranslator.chatBoxAI.ui.components.ChatContent
+import com.example.aibasedlanguagetranslator.chatBoxAI.ui.components.ChatHeader
 import com.example.aibasedlanguagetranslator.chatBoxAI.ui.components.ChatInput
 import com.example.aibasedlanguagetranslator.chatBoxAI.viewmodel.GeminiViewModel
 import com.example.aibasedlanguagetranslator.ui.components.TranslateBottomBar
@@ -15,7 +16,8 @@ import com.example.aibasedlanguagetranslator.ui.components.TranslateBottomBar
 @Composable
 fun AIChatBox(
     viewModel: GeminiViewModel,
-    navController: NavController
+    navController: NavController,
+    isDarkMode: Boolean
 ) {
     var prompt by remember { mutableStateOf("") }
     val response by viewModel.response.collectAsState()
@@ -31,7 +33,7 @@ fun AIChatBox(
 
     Scaffold(
         bottomBar = {
-            TranslateBottomBar(navController = navController)
+            TranslateBottomBar(navController = navController, isDarkMode = isDarkMode)
         }
     ) { innerPadding ->
         Column(
@@ -39,6 +41,8 @@ fun AIChatBox(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            ChatHeader()
+
             // Nội dung chat
             Box(
                 modifier = Modifier

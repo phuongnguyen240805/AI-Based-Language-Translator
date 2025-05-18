@@ -9,14 +9,15 @@ import org.koin.androidx.compose.koinViewModel
 import com.example.aibasedlanguagetranslator.chatBoxAI.viewmodel.GeminiViewModel
 
 @Composable
-fun ChatAIScreen(navController: NavController) {
+fun ChatAIScreen(navController: NavController, isDarkMode: Boolean) {
     Box(
         modifier = Modifier
             .fillMaxSize()
     ) {
         AIChatBox(
             viewModel = koinViewModel<GeminiViewModel>(),
-            navController = navController
+            navController = navController,
+            isDarkMode = isDarkMode
         )
     }
 }
